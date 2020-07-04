@@ -72,7 +72,7 @@ class Topology(object):
 class SallenKey(Topology):
 
     def __init__(self, components):
-        super(Topology, self).__init__()
+        super(SallenKey, self).__init__()
         self.components = components
 
     def transferFunction(self, omega):
@@ -90,7 +90,7 @@ class SallenKey(Topology):
 class RLC(Topology):
 
     def __init__(self, components):
-        super(Topology, self).__init__()
+        super(RLC, self).__init__()
         self.components = components
 
     def transferFunction(self, omega):
@@ -102,7 +102,7 @@ class RLC(Topology):
 class Rx(Topology):
 
     def __init__(self, components):
-        super(Topology, self).__init__()
+        super(Rx, self).__init__()
         self.components = components
 
     def transferFunction(self, omega):
