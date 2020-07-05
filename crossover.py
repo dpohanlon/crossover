@@ -21,7 +21,11 @@ rcParams.update({'figure.autolayout': True})
 
 import numpy as np
 
+# from jax.config import config
+# config.update("jax_enable_x64", True)
+
 import jax
+import jax.numpy as jnp
 
 from tqdm import tqdm
 
@@ -41,7 +45,7 @@ class Resistor(Component):
 
     def impedence(self, omega):
 
-        return jax.lax.complex(self.resistance * np.ones((omega.shape)), 0.)
+        return jax.lax.complex(self.resistance * jnp.ones((omega.shape)), 0.)
 
 class Inductor(Component):
 
@@ -108,9 +112,10 @@ class Rx(Topology):
 
     def transferFunction(self, omega):
 
-        impedences = np.array([c.impedence(omega) for c in self.components])
+        impedences = jnp.array([c.impedence(omega) for c in self.components])
+        print(impedences)
 
-        return impedences[1, :] / np.sum(impedences, axis = 0)
+        return impedences[1, :] / jnp.sum(impedences, axis = 0)
 
 if __name__ == '__main__':
 
@@ -128,8 +133,10 @@ if __name__ == '__main__':
 
     filter = Rx([cap, res])
 
-    freqs = np.array(np.linspace(10, 10E6, 1000))
+    freqs = jnp.array(np.linspace(10, 10E6, 1000))
     omegas = 2 * np.pi * freqs
+
+    print(freqs.dtype)
 
     output = filter.transferFunction(omegas)
 
