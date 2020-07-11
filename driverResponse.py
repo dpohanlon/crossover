@@ -33,18 +33,19 @@ class DriverResponse(object):
 
         self.readFRD(fileName)
 
-
     def readFRD(self, fileName):
 
         with open(fileName, 'r') as f:
             reader = csv.reader(f, dialect='excel-tab')
-            self.response = [tuple(map(float, r)) for r in reader]
+            self.frequencyResponse = [tuple(map(float, r)) for r in reader]
+
+        self.frequencies = [x[0] for x in self.frequencyResponse]
+        self.response = [x[1] for x in self.frequencyResponse]
 
     def plotResponse(self):
 
-        plt.plot([r[0] for r in self.response], [r[1] for r in self.response], lw = 1.0)
+        plt.plot(self.frequencies, self.response, lw = 1.0)
         plt.xscale('log')
-        # plt.yscale('log')
         plt.savefig('response.pdf')
 
 if __name__ == '__main__':
