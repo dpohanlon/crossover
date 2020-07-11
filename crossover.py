@@ -75,6 +75,9 @@ class Topology(object):
     def transferFunction(self, omega):
         pass
 
+    def stdDev(self, omega):
+        return jnp.std(self.transferFunction(omega))
+
 class SallenKey(Topology):
 
     def __init__(self, components):
@@ -113,40 +116,74 @@ class Rx(Topology):
     def transferFunction(self, omega):
 
         impedences = jnp.array([c.impedence(omega) for c in self.components])
-        print(impedences)
 
         return impedences[1, :] / jnp.sum(impedences, axis = 0)
 
+# if __name__ == '__main__':
+#
+#     # low pass
+#
+#     resLP = Resistor(160.)
+#     capLP = Capacitor(1E-9)
+#
+#     filterLP = Rx([resLP, capLP])
+#
+#     # high pass
+#
+#     resHP = Resistor(2.4E5)
+#     capHP = Capacitor(1E-12)
+#
+#     filterHP = Rx([capHP, resHP])
+#
+#     freqs = jnp.array(np.linspace(10, 10E6, 1000))
+#     omegas = 2 * np.pi * freqs
+#
+#     outputHP = filterHP.transferFunction(omegas)
+#     outputLP = filterLP.transferFunction(omegas)
+#
+#     # Need to 'marginalise' over omegas, inputs are component values
+#     gradLP = jax.grad(filterHP.stdDev)
+#
+#     # g = jax.grad(filter.transferFunction, holomorphic = True)
+#
+#     plt.plot(freqs, np.abs(outputHP))
+#     # plt.plot(freqs, np.abs(outputLP))
+#     plt.xscale('log')
+#     plt.yscale('log')
+#     plt.savefig('test.pdf')
+#     plt.clf()
+#
+#     # plt.plot(freqs, np.angle(outputHP))
+#     # plt.plot(freqs, np.angle(outputLP))
+#     # plt.xscale('log')
+#     # plt.savefig('testPhase.pdf')
+#     # plt.clf()
+
 if __name__ == '__main__':
 
-    # low pass
+    from driverResponse import DriverResponse
 
-    # res = Resistor(160.)
-    # cap = Capacitor(1E-9)
-    #
-    # filter = Rx([res, cap])
+    driver = DriverResponse('/Users/MBP/Downloads/AN25F-4_data/FRD/AN25F-4@0.frd')
 
     # high pass
 
-    res = Resistor(2.4E5)
-    cap = Capacitor(1E-12)
+    resHP = Resistor(5E6)
+    capHP = Capacitor(2E-12)
 
-    filter = Rx([cap, res])
+    filterHP = Rx([capHP, resHP])
 
-    freqs = jnp.array(np.linspace(10, 10E6, 1000))
+    # Shift the frequencies just to test
+    freqs = np.array(driver.frequencies) + 5E4
     omegas = 2 * np.pi * freqs
 
-    print(freqs.dtype)
+    outputHP = filterHP.transferFunction(omegas)
 
-    output = filter.transferFunction(omegas)
+    response = outputHP * np.array(driver.response)
 
-    plt.plot(freqs, np.abs(output))
+    plt.plot(freqs, response)
+    # plt.plot(freqs, driver.response)
+    # plt.plot(freqs, outputHP)
     plt.xscale('log')
-    plt.yscale('log')
+    # plt.yscale('log')
     plt.savefig('test.pdf')
-    plt.clf()
-
-    plt.plot(freqs, np.angle(output))
-    plt.xscale('log')
-    plt.savefig('testPhase.pdf')
     plt.clf()
