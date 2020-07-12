@@ -29,11 +29,12 @@ from scipy.interpolate import CubicSpline
 
 class DriverResponse(object):
 
-    def __init__(self, fileName):
+    def __init__(self, fileName, name):
 
         super(DriverResponse, self).__init__()
 
         self.fileName = fileName
+        self.name = name
 
         self.readFRD(fileName)
         self.makeSpline()
@@ -68,22 +69,22 @@ class DriverResponse(object):
 
         return splineVals
 
-    def plotResponse(self, name):
+    def plotResponse(self):
 
         freqs = np.linspace(self.minFreq, self.maxFreq, 1000)
         plt.plot(freqs, self.spline(freqs), lw = 1.0)
         plt.plot(self.frequencies, self.response, lw = 1.0)
         plt.xscale('log')
-        plt.savefig(f'{name}.pdf')
+        plt.savefig(f'{self.name}.pdf')
         plt.clf()
 
 if __name__ == '__main__':
 
-    driverT = DriverResponse('/Users/MBP/Downloads/AN25F-4_data/FRD/AN25F-4@0.frd')
-    driverT.plotResponse('AN25')
+    driverT = DriverResponse('/Users/MBP/Downloads/AN25F-4_data/FRD/AN25F-4@0.frd', 'AN25')
+    driverT.plotResponse()
 
-    driverW = DriverResponse('/Users/MBP/Downloads/TCP115-8_data/FRD/TCP115-8@0.frd')
-    driverW.plotResponse('TCP115')
+    driverW = DriverResponse('/Users/MBP/Downloads/TCP115-8_data/FRD/TCP115-8@0.frd', 'TCP115')
+    driverW.plotResponse()
 
     # Just the overlap region
     minFreq = max(driverW.minFreq, driverT.minFreq)
