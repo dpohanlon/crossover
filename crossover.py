@@ -75,9 +75,6 @@ class Topology(object):
     def transferFunction(self, omega):
         pass
 
-    def stdDev(self, omega):
-        return jnp.std(self.transferFunction(omega))
-
 class SallenKey(Topology):
 
     def __init__(self, components):
@@ -135,29 +132,34 @@ class Crossover(object):
         self.minOverlap = max(driverLow.minFreq, driverHigh.minFreq)
         self.maxOverlap = min(driverLow.maxFreq, driverHigh.maxFreq)
 
-        self.frequencies = np.linspace(self.minOverlap, self.maxOverlap, 1000)
+        self.frequencies = jnp.linspace(self.minOverlap, self.maxOverlap, 1000)
         self.angularFrequencies = 2. * np.pi * self.frequencies + 5E4
 
-    # def applyCrossover(self, resLow, capLow, resHigh, capHigh):
-    def applyCrossover(self):
+    def applyCrossover(self, res, cap):
 
-        # self.topologyLow.components[0].resistance(resLow)
-        # self.topologyLow.components[1].capacitance(capLow)
-        #
-        # self.topologyhigh.components[0].capacitance(capLow)
-        # self.topologyhigh.components[1].resistance(resLow)
+        self.topologyLow.components[0].resistance = res
+        self.topologyLow.components[1].capacitance = cap
 
-        absLow = np.abs(self.topologyLow.transferFunction(self.angularFrequencies))
-        absHigh = np.abs(self.topologyHigh.transferFunction(self.angularFrequencies))
+        self.topologyHigh.components[0].capacitance = cap
+        self.topologyHigh.components[1].resistance = res
 
-        response = absLow * self.driverLow(self.frequencies) + \
-                   absHigh * self.driverHigh(self.frequencies)
+        absLow = jnp.abs(self.topologyLow.transferFunction(self.angularFrequencies))
+        absHigh = jnp.abs(self.topologyHigh.transferFunction(self.angularFrequencies))
 
-        return response, absLow * self.driverLow(self.frequencies), absHigh * self.driverHigh(self.frequencies)
+        lowResponse = absLow * self.driverLow(self.frequencies)
+        highResponse = absHigh * self.driverHigh(self.frequencies)
+
+        response = lowResponse + highResponse
+
+        return response, lowResponse, highResponse
 
     def noCrossover(self):
 
         return self.driverLow(self.frequencies) + self.driverHigh(self.frequencies)
+
+    def flatness(self, res, cap):
+
+        return jnp.std(self.applyCrossover(res, cap)[0])
 
 # if __name__ == '__main__':
 #
@@ -209,13 +211,16 @@ if __name__ == '__main__':
     driverW = DriverResponse('/Users/MBP/Downloads/TCP115-8_data/FRD/TCP115-8@0.frd', 'TCP115')
     driverW.plotResponse()
 
-    resLP = Resistor(5E6)
-    capLP = Capacitor(2E-12)
+    resVal = 5E6
+    capVal = 2E-12
+
+    resLP = Resistor(resVal)
+    capLP = Capacitor(capVal)
 
     filterLP = Rx([resLP, capLP])
 
-    resHP = Resistor(5E6)
-    capHP = Capacitor(2E-12)
+    resHP = Resistor(resVal)
+    capHP = Capacitor(capVal)
 
     filterHP = Rx([capHP, resHP])
 
@@ -226,11 +231,44 @@ if __name__ == '__main__':
     plt.savefig('test.pdf')
     plt.clf()
 
-    co, hi, lo = crossover.applyCrossover()
+    co, hi, lo = crossover.applyCrossover(resVal, capVal)
 
     plt.plot(crossover.frequencies, co)
     plt.plot(crossover.frequencies, hi)
     plt.plot(crossover.frequencies, lo)
     plt.xscale('log')
     plt.savefig('testCrossover.pdf')
+    plt.clf()
+
+    flatGrad = jax.grad(crossover.flatness, argnums = [0, 1])
+
+    # print(flatGrad(resVal, capVal))
+
+    lr = 0.01
+
+    res = resVal
+    cap = capVal
+
+    for i in range(10):
+
+        resGrad, capGrad = flatGrad(res, cap)
+
+        print(resGrad, capGrad)
+        print()
+
+        res += lr * resGrad
+        cap += lr * capGrad
+
+        flatness = crossover.flatness(res, cap)
+
+        print(res, cap, flatness)
+        print()
+
+    co, hi, lo = crossover.applyCrossover(res, cap)
+
+    # plt.plot(crossover.frequencies, co)
+    plt.plot(crossover.frequencies, hi)
+    # plt.plot(crossover.frequencies, lo)
+    plt.xscale('log')
+    plt.savefig('crossoverOpt.pdf')
     plt.clf()
