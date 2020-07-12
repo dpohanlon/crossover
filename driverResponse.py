@@ -60,6 +60,8 @@ class DriverResponse(object):
 
     def evaluateSpline(self, freqs):
 
+        minResponse = min(self.response)
+
         splineVals = self.spline(freqs)
         splineVals[freqs > self.maxFreq] = 0.
         splineVals[freqs < self.minFreq] = 0.
@@ -83,4 +85,14 @@ if __name__ == '__main__':
     driverW = DriverResponse('/Users/MBP/Downloads/TCP115-8_data/FRD/TCP115-8@0.frd')
     driverW.plotResponse('TCP115')
 
-    print(driverT(np.array([1.0, 10000., 1E9])))
+    # Just the overlap region
+    minFreq = max(driverW.minFreq, driverT.minFreq)
+    maxFreq = min(driverW.maxFreq, driverT.maxFreq)
+
+    freqs = np.linspace(minFreq, maxFreq, 1000)
+
+    plt.plot(freqs, driverW(freqs) + driverT(freqs))
+    plt.plot(freqs, driverW(freqs))
+    plt.plot(freqs, driverT(freqs))
+    plt.xscale('log')
+    plt.savefig('test.pdf')
