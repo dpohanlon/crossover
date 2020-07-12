@@ -47,24 +47,40 @@ class DriverResponse(object):
         self.frequencies = [x[0] for x in self.frequencyResponse]
         self.response = [x[1] for x in self.frequencyResponse]
 
+        self.minFreq = min(self.frequencies)
+        self.maxFreq = max(self.frequencies)
+
     def makeSpline(self):
 
         self.spline = CubicSpline(self.frequencies, self.response)
 
     def __call__(self, freqs):
 
-        return self.spline(freqs)
+        return self.evaluateSpline(freqs)
 
-    def plotResponse(self):
+    def evaluateSpline(self, freqs):
 
-        freqs = np.linspace(min(self.frequencies), max(self.frequencies), 1000)
+        splineVals = self.spline(freqs)
+        splineVals[freqs > self.maxFreq] = 0.
+        splineVals[freqs < self.minFreq] = 0.
+
+        return splineVals
+
+    def plotResponse(self, name):
+
+        freqs = np.linspace(self.minFreq, self.maxFreq, 1000)
         plt.plot(freqs, self.spline(freqs), lw = 1.0)
         plt.plot(self.frequencies, self.response, lw = 1.0)
         plt.xscale('log')
-        plt.savefig('response.pdf')
+        plt.savefig(f'{name}.pdf')
+        plt.clf()
 
 if __name__ == '__main__':
-    driver = DriverResponse('/Users/MBP/Downloads/AN25F-4_data/FRD/AN25F-4@0.frd')
 
-    pprint(driver(10000.))
-    driver.plotResponse()
+    driverT = DriverResponse('/Users/MBP/Downloads/AN25F-4_data/FRD/AN25F-4@0.frd')
+    driverT.plotResponse('AN25')
+
+    driverW = DriverResponse('/Users/MBP/Downloads/TCP115-8_data/FRD/TCP115-8@0.frd')
+    driverW.plotResponse('TCP115')
+
+    print(driverT(np.array([1.0, 10000., 1E9])))
