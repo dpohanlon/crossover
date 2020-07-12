@@ -119,6 +119,46 @@ class Rx(Topology):
 
         return impedences[1, :] / jnp.sum(impedences, axis = 0)
 
+class Crossover(object):
+
+    # Just two way for now
+
+    def __init__(self, driverLow, driverHigh, topologyLow, topologyHigh):
+        super(Crossover, self).__init__()
+
+        self.driverLow = driverLow
+        self.driverHigh = driverHigh
+
+        self.topologyLow = topologyLow
+        self.topologyHigh = topologyHigh
+
+        self.minOverlap = max(driverLow.minFreq, driverHigh.minFreq)
+        self.maxOverlap = min(driverLow.maxFreq, driverHigh.maxFreq)
+
+        self.frequencies = np.linspace(self.minOverlap, self.maxOverlap, 1000)
+        self.angularFrequencies = 2. * np.pi * self.frequencies + 5E4
+
+    # def applyCrossover(self, resLow, capLow, resHigh, capHigh):
+    def applyCrossover(self):
+
+        # self.topologyLow.components[0].resistance(resLow)
+        # self.topologyLow.components[1].capacitance(capLow)
+        #
+        # self.topologyhigh.components[0].capacitance(capLow)
+        # self.topologyhigh.components[1].resistance(resLow)
+
+        absLow = np.abs(self.topologyLow.transferFunction(self.angularFrequencies))
+        absHigh = np.abs(self.topologyHigh.transferFunction(self.angularFrequencies))
+
+        response = absLow * self.driverLow(self.frequencies) + \
+                   absHigh * self.driverHigh(self.frequencies)
+
+        return response, absLow * self.driverLow(self.frequencies), absHigh * self.driverHigh(self.frequencies)
+
+    def noCrossover(self):
+
+        return self.driverLow(self.frequencies) + self.driverHigh(self.frequencies)
+
 # if __name__ == '__main__':
 #
 #     # low pass
@@ -163,27 +203,34 @@ if __name__ == '__main__':
 
     from driverResponse import DriverResponse
 
-    driver = DriverResponse('/Users/MBP/Downloads/AN25F-4_data/FRD/AN25F-4@0.frd')
+    driverT = DriverResponse('/Users/MBP/Downloads/AN25F-4_data/FRD/AN25F-4@0.frd', 'AN25')
+    driverT.plotResponse()
 
-    # high pass
+    driverW = DriverResponse('/Users/MBP/Downloads/TCP115-8_data/FRD/TCP115-8@0.frd', 'TCP115')
+    driverW.plotResponse()
+
+    resLP = Resistor(5E6)
+    capLP = Capacitor(2E-12)
+
+    filterLP = Rx([resLP, capLP])
 
     resHP = Resistor(5E6)
     capHP = Capacitor(2E-12)
 
     filterHP = Rx([capHP, resHP])
 
-    # Shift the frequencies just to test
-    freqs = np.array(driver.frequencies) + 5E4
-    omegas = 2 * np.pi * freqs
+    crossover = Crossover(driverW, driverT, filterLP, filterHP)
 
-    outputHP = filterHP.transferFunction(omegas)
-
-    response = outputHP * np.array(driver.response)
-
-    plt.plot(freqs, response)
-    # plt.plot(freqs, driver.response)
-    # plt.plot(freqs, outputHP)
+    plt.plot(crossover.frequencies, crossover.noCrossover())
     plt.xscale('log')
-    # plt.yscale('log')
     plt.savefig('test.pdf')
+    plt.clf()
+
+    co, hi, lo = crossover.applyCrossover()
+
+    plt.plot(crossover.frequencies, co)
+    plt.plot(crossover.frequencies, hi)
+    plt.plot(crossover.frequencies, lo)
+    plt.xscale('log')
+    plt.savefig('testCrossover.pdf')
     plt.clf()
