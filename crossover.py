@@ -26,6 +26,7 @@ import numpy as np
 
 import jax
 import jax.numpy as jnp
+from jax.experimental.optimizers import adam
 
 from tqdm import tqdm
 
@@ -135,7 +136,7 @@ class Crossover(object):
         self.frequencies = jnp.linspace(self.minOverlap, self.maxOverlap, 1000)
         self.angularFrequencies = 2. * np.pi * self.frequencies + 5E4
 
-    def applyCrossover(self, res, cap):
+    def applyCrossover(self, res, cap, highRes):
 
         self.topologyLow.components[0].resistance = res
         self.topologyLow.components[1].capacitance = cap
@@ -144,7 +145,7 @@ class Crossover(object):
         self.topologyHigh.components[1].resistance = res
 
         absLow = jnp.abs(self.topologyLow.transferFunction(self.angularFrequencies))
-        absHigh = jnp.abs(self.topologyHigh.transferFunction(self.angularFrequencies))
+        absHigh = highRes * jnp.abs(self.topologyHigh.transferFunction(self.angularFrequencies))
 
         lowResponse = absLow * self.driverLow(self.frequencies)
         highResponse = absHigh * self.driverHigh(self.frequencies)
@@ -157,49 +158,25 @@ class Crossover(object):
 
         return self.driverLow(self.frequencies) + self.driverHigh(self.frequencies)
 
-    def flatness(self, res, cap):
+    def flatness(self, logRes, logCap, logHighRes):
 
-        return jnp.std(self.applyCrossover(res, cap)[0])
+        res = jnp.exp(logRes)
+        cap = jnp.exp(logCap)
+        highRes = jnp.exp(logHighRes)
 
-# if __name__ == '__main__':
-#
-#     # low pass
-#
-#     resLP = Resistor(160.)
-#     capLP = Capacitor(1E-9)
-#
-#     filterLP = Rx([resLP, capLP])
-#
-#     # high pass
-#
-#     resHP = Resistor(2.4E5)
-#     capHP = Capacitor(1E-12)
-#
-#     filterHP = Rx([capHP, resHP])
-#
-#     freqs = jnp.array(np.linspace(10, 10E6, 1000))
-#     omegas = 2 * np.pi * freqs
-#
-#     outputHP = filterHP.transferFunction(omegas)
-#     outputLP = filterLP.transferFunction(omegas)
-#
-#     # Need to 'marginalise' over omegas, inputs are component values
-#     gradLP = jax.grad(filterHP.stdDev)
-#
-#     # g = jax.grad(filter.transferFunction, holomorphic = True)
-#
-#     plt.plot(freqs, np.abs(outputHP))
-#     # plt.plot(freqs, np.abs(outputLP))
-#     plt.xscale('log')
-#     plt.yscale('log')
-#     plt.savefig('test.pdf')
-#     plt.clf()
-#
-#     # plt.plot(freqs, np.angle(outputHP))
-#     # plt.plot(freqs, np.angle(outputLP))
-#     # plt.xscale('log')
-#     # plt.savefig('testPhase.pdf')
-#     # plt.clf()
+        if res < 0:
+            return 1E10
+        if cap < 0:
+            return 1E10
+
+        response = self.applyCrossover(res, cap, highRes)[0]
+
+        if np.mean(response) < 10.:
+            return 1E10
+
+        # return jnp.std(response)
+
+        return jnp.sum((response - jnp.mean(response)) ** 2)
 
 if __name__ == '__main__':
 
@@ -211,8 +188,12 @@ if __name__ == '__main__':
     driverW = DriverResponse('/Users/MBP/Downloads/TCP115-8_data/FRD/TCP115-8@0.frd', 'TCP115')
     driverW.plotResponse()
 
-    resVal = 5E6
-    capVal = 2E-12
+    resVal = np.log(5E6)
+    capVal = np.log(2E-12)
+
+    # resVal = np.log(7E6)
+    # capVal = np.log(0.1E-12)
+    highResVal = np.log(10)
 
     resLP = Resistor(resVal)
     capLP = Capacitor(capVal)
@@ -231,7 +212,7 @@ if __name__ == '__main__':
     plt.savefig('test.pdf')
     plt.clf()
 
-    co, hi, lo = crossover.applyCrossover(resVal, capVal)
+    co, hi, lo = crossover.applyCrossover(np.exp(resVal), np.exp(capVal), np.exp(highResVal))
 
     plt.plot(crossover.frequencies, co)
     plt.plot(crossover.frequencies, hi)
@@ -240,35 +221,53 @@ if __name__ == '__main__':
     plt.savefig('testCrossover.pdf')
     plt.clf()
 
-    flatGrad = jax.grad(crossover.flatness, argnums = [0, 1])
+    flatGrad = jax.grad(crossover.flatness, argnums = [0, 1, 2])
 
     # print(flatGrad(resVal, capVal))
 
-    lr = 0.01
+    init_fun, update_fun, get_params = adam(1E-2)
+
+    lr = 1E-2
 
     res = resVal
     cap = capVal
+    highRes = highResVal
 
-    for i in range(10):
+    state = init_fun((res, cap, highRes))
 
-        resGrad, capGrad = flatGrad(res, cap)
+    losses = []
 
-        print(resGrad, capGrad)
-        print()
+    for i in tqdm(range(250)):
 
-        res += lr * resGrad
-        cap += lr * capGrad
+        # resGrad, capGrad = flatGrad(res, cap)
+        grads = flatGrad(res, cap, highRes)
 
-        flatness = crossover.flatness(res, cap)
+        state = update_fun(i, grads, state)
 
-        print(res, cap, flatness)
-        print()
+        res, cap, highRes = get_params(state)
 
-    co, hi, lo = crossover.applyCrossover(res, cap)
+        flatness = crossover.flatness(res, cap, highRes)
+        losses.append(flatness)
 
-    # plt.plot(crossover.frequencies, co)
+    print(crossover.flatness(res, cap, highRes))
+    print(np.exp(res))
+    print(np.exp(cap))
+    print(np.exp(highRes))
+
+    co, hi, lo = crossover.applyCrossover(np.exp(res), np.exp(cap), np.exp(highRes))
+    coBefore, _, _ = crossover.applyCrossover(np.exp(resVal), np.exp(capVal), np.exp(highResVal))
+
+    flatNew = crossover.flatness(res, cap, highRes)
+    flatOld = crossover.flatness(resVal, capVal, highResVal)
+
+    plt.plot(crossover.frequencies, co)
+    # plt.plot(crossover.frequencies, coBefore)
     plt.plot(crossover.frequencies, hi)
-    # plt.plot(crossover.frequencies, lo)
+    plt.plot(crossover.frequencies, lo)
     plt.xscale('log')
     plt.savefig('crossoverOpt.pdf')
+    plt.clf()
+
+    plt.plot(losses)
+    plt.savefig('losses.pdf')
     plt.clf()
