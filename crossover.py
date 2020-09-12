@@ -30,92 +30,7 @@ from jax.experimental.optimizers import adam
 
 from tqdm import tqdm
 
-class Component(object):
-
-    def __init__(self):
-        super(Component, self).__init__()
-
-    def impedence(self):
-        pass
-
-class Resistor(Component):
-
-    def __init__(self, resistance):
-        super(Resistor, self).__init__()
-        self.resistance = float(resistance)
-
-    def impedence(self, omega):
-
-        return jax.lax.complex(self.resistance * jnp.ones((omega.shape)), 0.)
-
-class Inductor(Component):
-
-    def __init__(self, inductance):
-        super(Inductor, self).__init__()
-        self.inductance = float(inductance)
-
-    def impedence(self, omega):
-        return jax.lax.complex(0., omega * self.inductance)
-
-class Capacitor(Component):
-
-    def __init__(self, capacitance):
-        super(Capacitor, self).__init__()
-        self.capacitance = float(capacitance)
-
-    def impedence(self, omega):
-
-        return jax.lax.complex(0., -1./(omega * self.capacitance))
-
-class Topology(object):
-
-    def __init__(self, components):
-        super(Topology, self).__init__()
-        self.components = components
-
-    def transferFunction(self, omega):
-        pass
-
-class SallenKey(Topology):
-
-    def __init__(self, components):
-        super(SallenKey, self).__init__()
-        self.components = components
-
-    def transferFunction(self, omega):
-
-        impedences = [c.impedence(omega) for c in components]
-
-        numerator = impedences[2] * impedences[3]
-
-        denominator = impedences[0] * impedences[1]
-        denominator += impedences[2] * (impedences[0] + impedences[1])
-        denominator += impedences[2] * impedences[3]
-
-        return numerator / denominator
-
-class RLC(Topology):
-
-    def __init__(self, components):
-        super(RLC, self).__init__()
-        self.components = components
-
-    def transferFunction(self, omega):
-
-        impedences = [c.impedence(omega) for c in components]
-
-        return impedences[2] / (jax.sum(impedences))
-
-class Rx(Topology):
-
-    def __init__(self, components):
-        super(Rx, self).__init__(components)
-
-    def transferFunction(self, omega):
-
-        impedences = jnp.array([c.impedence(omega) for c in self.components])
-
-        return impedences[1, :] / jnp.sum(impedences, axis = 0)
+import components
 
 class Crossover(object):
 
@@ -193,17 +108,17 @@ if __name__ == '__main__':
 
     # resVal = np.log(7E6)
     # capVal = np.log(0.1E-12)
-    highResVal = np.log(10)
+    highResVal = np.log(1)
 
-    resLP = Resistor(resVal)
-    capLP = Capacitor(capVal)
+    resLP = components.Resistor(resVal)
+    capLP = components.Capacitor(capVal)
 
-    filterLP = Rx([resLP, capLP])
+    filterLP = components.Rx([resLP, capLP])
 
-    resHP = Resistor(resVal)
-    capHP = Capacitor(capVal)
+    resHP = components.Resistor(resVal)
+    capHP = components.Capacitor(capVal)
 
-    filterHP = Rx([capHP, resHP])
+    filterHP = components.Rx([capHP, resHP])
 
     crossover = Crossover(driverW, driverT, filterLP, filterHP)
 
@@ -225,9 +140,8 @@ if __name__ == '__main__':
 
     # print(flatGrad(resVal, capVal))
 
-    init_fun, update_fun, get_params = adam(1E-2)
-
     lr = 1E-2
+    init_fun, update_fun, get_params = adam(lr)
 
     res = resVal
     cap = capVal
