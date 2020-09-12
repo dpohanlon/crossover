@@ -31,6 +31,7 @@ from jax.experimental.optimizers import adam
 from tqdm import tqdm
 
 import components
+from components import AvailableComponents
 
 class Crossover(object):
 
@@ -60,7 +61,7 @@ class Crossover(object):
         self.topologyHigh.components[1].resistance = res
 
         absLow = jnp.abs(self.topologyLow.transferFunction(self.angularFrequencies))
-        absHigh = highRes * jnp.abs(self.topologyHigh.transferFunction(self.angularFrequencies))
+        absHigh = (1./highRes) * jnp.abs(self.topologyHigh.transferFunction(self.angularFrequencies))
 
         lowResponse = absLow * self.driverLow(self.frequencies)
         highResponse = absHigh * self.driverHigh(self.frequencies)
@@ -79,10 +80,10 @@ class Crossover(object):
         cap = jnp.exp(logCap)
         highRes = jnp.exp(logHighRes)
 
-        if res < 0:
-            return 1E10
-        if cap < 0:
-            return 1E10
+        # if res < 0:
+        #     return 1E10
+        # if cap < 0:
+        #     return 1E10
 
         response = self.applyCrossover(res, cap, highRes)[0]
 
@@ -91,7 +92,13 @@ class Crossover(object):
 
         # return jnp.std(response)
 
-        return jnp.sum((response - jnp.mean(response)) ** 2)
+        flat = jnp.sum((response - jnp.mean(response)) ** 2)
+        flat += jnp.exp(-100*res)
+        flat += jnp.exp(-100*cap)
+
+        print(jnp.exp(-100*cap), logCap, cap)
+
+        return flat
 
 if __name__ == '__main__':
 
@@ -151,7 +158,7 @@ if __name__ == '__main__':
 
     losses = []
 
-    for i in tqdm(range(250)):
+    for i in tqdm(range(25)):
 
         # resGrad, capGrad = flatGrad(res, cap)
         grads = flatGrad(res, cap, highRes)
@@ -163,9 +170,9 @@ if __name__ == '__main__':
         flatness = crossover.flatness(res, cap, highRes)
         losses.append(flatness)
 
-    print(crossover.flatness(res, cap, highRes))
-    print(np.exp(res))
-    print(np.exp(cap))
+    print("flat", crossover.flatness(res, cap, highRes))
+    print("res", np.exp(res))
+    print("cap", np.exp(cap))
     print(np.exp(highRes))
 
     co, hi, lo = crossover.applyCrossover(np.exp(res), np.exp(cap), np.exp(highRes))
@@ -174,12 +181,33 @@ if __name__ == '__main__':
     flatNew = crossover.flatness(res, cap, highRes)
     flatOld = crossover.flatness(resVal, capVal, highResVal)
 
+    print(flatNew)
+
     plt.plot(crossover.frequencies, co)
     # plt.plot(crossover.frequencies, coBefore)
     plt.plot(crossover.frequencies, hi)
     plt.plot(crossover.frequencies, lo)
     plt.xscale('log')
     plt.savefig('crossoverOpt.pdf')
+    plt.clf()
+
+    components = AvailableComponents('resTest.json', 'capTest.json')
+
+    nearestRes = components.nearestRes(np.exp(res))
+    nearestHighRes = components.nearestRes(np.exp(highRes))
+    nearestCap = components.nearestCap(np.exp(cap))
+
+    print("res", np.exp(res), nearestRes[1])
+    print("cap", np.exp(cap), nearestCap[1])
+    print("highRes", np.exp(highRes), nearestHighRes[1])
+
+    co, hi, lo = crossover.applyCrossover(nearestRes[1], nearestCap[1], nearestHighRes[1])
+
+    plt.plot(crossover.frequencies, co)
+    plt.plot(crossover.frequencies, hi)
+    plt.plot(crossover.frequencies, lo)
+    plt.xscale('log')
+    plt.savefig('crossoverOptNearest.pdf')
     plt.clf()
 
     plt.plot(losses)

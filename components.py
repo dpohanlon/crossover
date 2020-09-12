@@ -131,5 +131,5 @@ if __name__ == '__main__':
 
     ac = AvailableComponents('resTest.json', 'capTest.json')
 
-    print(ac.nearest(ac.resNames, ac.resValues, 13000.))
+    print(ac.nearest(ac.resNames, ac.resValues, 48000.))
     print(ac.nearestRes(13000.))
