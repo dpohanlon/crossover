@@ -122,10 +122,55 @@ class AvailableComponents(object):
         return names[idx], values[idx]
 
     def nearestRes(self, testValue):
+
+        if testValue > self.resValues[-1] + 0.1 * self.resValues[-1]:
+            return self.combineSum(self.resNames, self.resValues, testValue)
+        elif testValue < self.resValues[0] - 0.1 * self.resValues[0]:
+            return self.combineInverse(self.resNames, self.resValues, testValue)
+
         return self.nearest(self.resNames, self.resValues, testValue)
 
     def nearestCap(self, testValue):
+
+        if testValue > self.resValues[-1] + 0.1 * self.resValues[-1]:
+            return self.combineSum(self.capNames, self.capValues, testValue)
+        elif testValue < self.resValues[0] - 0.1 * self.resValues[0]:
+            return self.combineInverse(self.capNames, self.capValues, testValue)
+
         return self.nearest(self.capNames, self.capValues, testValue)
+
+    def combineSum(self, names, values, testValue):
+
+        diff = abs(values[-1] - testValue)
+        bestValue = values[0]
+        idx1 = -1
+
+        for idx2 in range(len(values)):
+
+            effectiveValue = values[idx1] + values[idx2]
+
+            if abs(effectiveValue - testValue) < diff:
+                diff = abs(effectiveValue - testValue)
+                bestValue = effectiveValue
+
+        return names[idx1] + ' ' +  names[idx2], bestValue
+
+    def combineInverse(self, names, values, testValue):
+
+        diff = abs(values[-1] - testValue)
+        bestValue = values[0]
+        idx1 = 0
+
+        for idx2 in range(len(values)):
+
+            effectiveValue = 1. / (1. / values[idx1] + 1. / values[idx2])
+
+            if abs(effectiveValue - testValue) < diff:
+                diff = abs(effectiveValue - testValue)
+                bestValue = effectiveValue
+
+        return names[idx1] + ' ' +  names[idx2], bestValue
+
 
 if __name__ == '__main__':
 
