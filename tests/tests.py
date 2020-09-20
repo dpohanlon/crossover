@@ -21,8 +21,8 @@ rcParams.update({'figure.autolayout': True})
 
 from tqdm import tqdm
 
-from driverResponse import DriverResponse
-from crossover import Crossover
+from crossover.driverResponse import DriverResponse
+from crossover.crossover import Crossover
 
 import jax
 import jax.numpy as jnp
@@ -30,7 +30,7 @@ from jax.experimental.optimizers import adam
 
 import numpy as np
 
-import components
+import crossover.components
 
 def testComponents():
 

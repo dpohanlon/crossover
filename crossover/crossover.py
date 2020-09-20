@@ -29,7 +29,8 @@ from tqdm import tqdm
 
 import argparse
 
-import components
+import crossover.components
+from crossover.driverResponse import DriverResponse
 
 class Crossover(object):
 
@@ -91,8 +92,6 @@ def setupDriverCrossover(highFileName = 'data/AN25F-4@0.frd',
                          highDriverName = 'AN25',
                          lowFileName = 'data/TCP115-8@0.frd',
                          lowDriverName = 'TCP115'):
-
-    from driverResponse import DriverResponse
 
     driverT = DriverResponse(highFileName, highDriverName)
     driverT.plotResponse()
