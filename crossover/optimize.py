@@ -156,7 +156,7 @@ def optimiseCrossover(highFileName = 'data/AN25F-4@0.frd',
     nearestHighRes = availableComponents.nearestRes(np.exp(highRes))
     nearestCap = availableComponents.nearestCap(np.exp(cap))
 
-    co, hi, lo = crossover.applyCrossover(nearestRes[1], nearestCap[1], nearestHighRes[1])
+    co, lo, hi = crossover.applyCrossover(nearestRes[1], nearestCap[1], nearestHighRes[1])
 
     plt.plot(crossover.frequencies, co, label = 'Total')
     plt.plot(crossover.frequencies, hi, label = 'High')
