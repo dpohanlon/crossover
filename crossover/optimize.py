@@ -37,7 +37,7 @@ class Optimize(object):
     # Just two way for now
 
     def __init__(self, driverLow, driverHigh, topologyLow, topologyHigh):
-        super(Crossover, self).__init__()
+        super(Optimize, self).__init__()
 
         self.driverLow = driverLow
         self.driverHigh = driverHigh

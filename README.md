@@ -1,4 +1,5 @@
 # Crossover
+[![Build Status](https://travis-ci.com/dpohanlon/crossover.svg?token=6U7ubPocKxuFEpjJP4aK&branch=master)](https://travis-ci.com/dpohanlon/crossover)
 
 Speaker driver crossover optimisation. Jax is used to compute gradients of the impedance response of the (high and low pass) filters, and the total flatness in the passband is optimised with Adam.
 
@@ -7,10 +8,10 @@ At the moment this only supports two drivers, and only the total frequency respo
 ![crossover](data/opt-resized.png)
 
 ```bash
-usage: crossover.py [-h] [-lf LOWFILENAME] [-ld LOWDRIVERNAME]
-                    [-hf HIGHFILENAME] [-hd HIGHDRIVERNAME]
-                    [--dataDir DATADIR] [--plotName PLOTNAME]
-                    [-lr LEARNINGRATE] [-e EPOCHS]
+usage: optimize.py [-h] [-lf LOWFILENAME] [-ld LOWDRIVERNAME]
+                   [-hf HIGHFILENAME] [-hd HIGHDRIVERNAME]
+                   [--dataDir DATADIR] [--plotName PLOTNAME]
+                   [-lr LEARNINGRATE] [-e EPOCHS]
 
 optional arguments:
   -h, --help            show this help message and exit

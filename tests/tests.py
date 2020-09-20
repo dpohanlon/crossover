@@ -145,7 +145,7 @@ def testComponents():
 
 def testCmdLine():
 
-    cmd = 'python crossover/crossover.py'
+    cmd = 'python crossover/optimize.py'
     ret = sp.call(cmd, shell = True)
 
     return ret
