@@ -24,7 +24,7 @@ import subprocess as sp
 from tqdm import tqdm
 
 from crossover.driverResponse import DriverResponse
-from crossover.crossover import Crossover
+from crossover.optimize import Optimize
 
 import jax
 import jax.numpy as jnp
@@ -57,7 +57,7 @@ def testComponents():
 
     filterHP = Rx([capHP, resHP])
 
-    crossover = Crossover(driverW, driverT, filterLP, filterHP)
+    crossover = Optimize(driverW, driverT, filterLP, filterHP)
 
     plt.plot(crossover.frequencies, crossover.noCrossover())
     plt.xscale('log')

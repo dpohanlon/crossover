@@ -32,7 +32,7 @@ import argparse
 from crossover.components import Resistor, Capacitor, Rx, AvailableComponents
 from crossover.driverResponse import DriverResponse
 
-class Crossover(object):
+class Optimize(object):
 
     # Just two way for now
 
@@ -112,7 +112,7 @@ def setupDriverCrossover(highFileName = 'data/AN25F-4@0.frd',
 
     filterHP = Rx([capHP, resHP])
 
-    crossover = Crossover(driverW, driverT, filterLP, filterHP)
+    crossover = Optimize(driverW, driverT, filterLP, filterHP)
 
     return crossover
 
