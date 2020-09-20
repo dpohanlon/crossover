@@ -29,7 +29,7 @@ from tqdm import tqdm
 
 import argparse
 
-import crossover.components
+from crossover.components import Resistor, Capacitor, Rx, AvailableComponents
 from crossover.driverResponse import DriverResponse
 
 class Crossover(object):
@@ -102,15 +102,15 @@ def setupDriverCrossover(highFileName = 'data/AN25F-4@0.frd',
     resVal = np.log(5E6)
     capVal = np.log(2E-12)
 
-    resLP = components.Resistor(resVal)
-    capLP = components.Capacitor(capVal)
+    resLP = Resistor(resVal)
+    capLP = Capacitor(capVal)
 
-    filterLP = components.Rx([resLP, capLP])
+    filterLP = Rx([resLP, capLP])
 
-    resHP = components.Resistor(resVal)
-    capHP = components.Capacitor(capVal)
+    resHP = Resistor(resVal)
+    capHP = Capacitor(capVal)
 
-    filterHP = components.Rx([capHP, resHP])
+    filterHP = Rx([capHP, resHP])
 
     crossover = Crossover(driverW, driverT, filterLP, filterHP)
 
@@ -150,7 +150,7 @@ def optimiseCrossover(highFileName = 'data/AN25F-4@0.frd',
         flatness = crossover.flatness(res, cap, highRes)
         losses.append(flatness)
 
-    availableComponents = components.AvailableComponents(f'{dataDir}/resistors.json', f'{dataDir}/capacitors.json')
+    availableComponents = AvailableComponents(f'{dataDir}/resistors.json', f'{dataDir}/capacitors.json')
 
     nearestRes = availableComponents.nearestRes(np.exp(res))
     nearestHighRes = availableComponents.nearestRes(np.exp(highRes))

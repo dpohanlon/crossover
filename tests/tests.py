@@ -19,6 +19,8 @@ rcParams['mathtext.rm'] = 'serif'
 
 rcParams.update({'figure.autolayout': True})
 
+import subprocess as sp
+
 from tqdm import tqdm
 
 from crossover.driverResponse import DriverResponse
@@ -30,7 +32,7 @@ from jax.experimental.optimizers import adam
 
 import numpy as np
 
-import crossover.components
+from crossover.components import Resistor, Capacitor, Rx, AvailableComponents
 
 def testComponents():
 
@@ -45,15 +47,15 @@ def testComponents():
 
     highResVal = np.log(1)
 
-    resLP = components.Resistor(resVal)
-    capLP = components.Capacitor(capVal)
+    resLP = Resistor(resVal)
+    capLP = Capacitor(capVal)
 
-    filterLP = components.Rx([resLP, capLP])
+    filterLP = Rx([resLP, capLP])
 
-    resHP = components.Resistor(resVal)
-    capHP = components.Capacitor(capVal)
+    resHP = Resistor(resVal)
+    capHP = Capacitor(capVal)
 
-    filterHP = components.Rx([capHP, resHP])
+    filterHP = Rx([capHP, resHP])
 
     crossover = Crossover(driverW, driverT, filterLP, filterHP)
 
@@ -117,7 +119,7 @@ def testComponents():
     plt.savefig('crossoverOpt.pdf')
     plt.clf()
 
-    componentsAvailable = components.AvailableComponents('data/resistors.json', 'data/capacitors.json')
+    componentsAvailable = AvailableComponents('data/resistors.json', 'data/capacitors.json')
 
     nearestRes = componentsAvailable.nearestRes(np.exp(res))
     nearestHighRes = componentsAvailable.nearestRes(np.exp(highRes))
@@ -140,3 +142,10 @@ def testComponents():
     plt.plot(losses)
     plt.savefig('losses.pdf')
     plt.clf()
+
+def testCmdLine():
+
+    cmd = 'python crossover/crossover.py'
+    ret = sp.call(cmd, shell = True)
+
+    return ret
